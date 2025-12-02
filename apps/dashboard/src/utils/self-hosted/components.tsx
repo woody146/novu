@@ -3,8 +3,51 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/primitives/button';
 import { Input } from '../../components/primitives/input';
 import { API_HOSTNAME } from '../../config';
+import { buildKeycloakLink, checkKeycloakEnabled } from './keycloak-utils';
 
 const JWT_STORAGE_KEY = 'self-hosted-jwt';
+
+function KeycloakIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+      <circle cx="128" cy="128" r="110" fill="#008aaa" />
+      <path d="M128 50 L170 110 L128 110 L128 206 L86 146 L128 146 Z" fill="white" />
+    </svg>
+  );
+}
+
+function KeycloakButton({ isLoginPage }: { isLoginPage?: boolean }) {
+  const [isKeycloakEnabled, setIsKeycloakEnabled] = useState(false);
+
+  useEffect(() => {
+    checkKeycloakEnabled().then(setIsKeycloakEnabled);
+  }, []);
+
+  if (!isKeycloakEnabled) {
+    return null;
+  }
+
+  const keycloakLink = buildKeycloakLink({ isLoginPage });
+
+  return (
+    <>
+      <a href={keycloakLink} className="w-full">
+        <Button type="button" variant="secondary" mode="outline" className="w-full gap-2">
+          <KeycloakIcon />
+          Sign In with Keycloak
+        </Button>
+      </a>
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-gray-300" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-white px-2 text-gray-500">Or</span>
+        </div>
+      </div>
+    </>
+  );
+}
 
 export function OrganizationList() {
   return <></>;
@@ -24,6 +67,24 @@ export function SignIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const authError = urlParams.get('error');
+
+    if (authError) {
+      setError('Authentication failed. Please try again.');
+
+      return;
+    }
+
+    if (token) {
+      localStorage.setItem(JWT_STORAGE_KEY, token);
+      (window as any).Clerk = { ...((window as any).Clerk || {}), loggedIn: true };
+      navigate('/');
+    }
+  }, [navigate]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,6 +123,7 @@ export function SignIn() {
   return (
     <div className="mx-auto w-full max-w-md pt-12">
       <h2 className="mb-6 text-center text-xl font-semibold">Sign In</h2>
+      <KeycloakButton isLoginPage />
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
@@ -221,6 +283,7 @@ export function SignUp() {
   return (
     <div className="mx-auto max-w-md pt-12">
       <h2 className="mb-6 text-center text-xl font-semibold">Create Account</h2>
+      <KeycloakButton />
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="firstName" className="mb-1 block text-sm font-medium text-gray-700">
@@ -313,9 +376,9 @@ export function SignUp() {
             role="button"
             tabIndex={0}
             className="text-primary-base focus:ring-primary-base/50 cursor-pointer font-medium hover:underline focus:outline-none focus:ring-2"
-            onClick={() => navigate('/auth/sign-in')}
+            onClick={() => navigate('/auth/login')}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') navigate('/auth/sign-in');
+              if (e.key === 'Enter' || e.key === ' ') navigate('/auth/login');
             }}
           >
             Sign In
@@ -331,7 +394,7 @@ export function RedirectToSignIn({ children }: { children: any }) {
 
   useEffect(() => {
     if (!(window as any).Clerk.loggedIn) {
-      navigate('/auth/sign-in');
+      navigate('/auth/login');
     }
   }, [navigate]);
 

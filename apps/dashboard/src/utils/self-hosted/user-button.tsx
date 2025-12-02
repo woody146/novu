@@ -39,7 +39,7 @@ export function UserButton() {
     }
 
     queryClient.clear();
-    navigate('/auth/sign-in');
+    navigate('/auth/login');
   };
 
   return (

@@ -1,5 +1,5 @@
 export const ROUTES = {
-  SIGN_IN: '/auth/sign-in',
+  SIGN_IN: '/auth/login',
   SIGN_UP: '/auth/sign-up',
   SIGNUP_ORGANIZATION_LIST: '/auth/organization-list',
   USECASE_SELECT: '/onboarding/usecase',
