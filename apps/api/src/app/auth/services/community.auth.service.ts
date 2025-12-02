@@ -38,6 +38,8 @@ import {
   UserSessionData,
 } from '@novu/shared';
 import { createHash } from 'crypto';
+import { CreateOrganizationCommand } from '../../organization/usecases/create-organization/create-organization.command';
+import { CreateOrganization } from '../../organization/usecases/create-organization/create-organization.usecase';
 import { CreateUserCommand } from '../../user/usecases/create-user/create-user.command';
 import { CreateUser } from '../../user/usecases/create-user/create-user.usecase';
 import { SwitchOrganizationCommand } from '../usecases/switch-organization/switch-organization.command';
@@ -55,7 +57,9 @@ export class CommunityAuthService implements IAuthService {
     private environmentRepository: EnvironmentRepository,
     private memberRepository: MemberRepository,
     @Inject(forwardRef(() => SwitchOrganization))
-    private switchOrganizationUsecase: SwitchOrganization
+    private switchOrganizationUsecase: SwitchOrganization,
+    @Inject(forwardRef(() => CreateOrganization))
+    private createOrganizationUsecase: CreateOrganization
   ) {}
 
   public async authenticate(
@@ -96,6 +100,15 @@ export class CommunityAuthService implements IAuthService {
         })
       );
       newUser = true;
+
+      // Create default organization for new OAuth users (similar to email registration)
+      const organizationName = firstName ? `${firstName}'s Organization` : 'My Organization';
+      await this.createOrganizationUsecase.execute(
+        CreateOrganizationCommand.create({
+          name: organizationName,
+          userId: user._id,
+        })
+      );
 
       if (distinctId) {
         this.analyticsService.alias(distinctId, user._id);

@@ -15,12 +15,17 @@ import { ApiKeyStrategy } from './services/passport/apikey.strategy';
 import { GitHubStrategy } from './services/passport/github.strategy';
 import { JwtStrategy } from './services/passport/jwt.strategy';
 import { JwtSubscriberStrategy } from './services/passport/subscriber-jwt.strategy';
+import { KeycloakStrategy } from './services/passport/keycloak.strategy';
 import { USE_CASES } from './usecases';
 
 const AUTH_STRATEGIES: Provider[] = [JwtStrategy, ApiKeyStrategy, JwtSubscriberStrategy];
 
 if (process.env.GITHUB_OAUTH_CLIENT_ID) {
   AUTH_STRATEGIES.push(GitHubStrategy);
+}
+
+if (process.env.KEYCLOAK_CLIENT_ID) {
+  AUTH_STRATEGIES.push(KeycloakStrategy);
 }
 
 export function getCommunityAuthModuleConfig(): ModuleMetadata {
@@ -84,6 +89,20 @@ export function configure(consumer: MiddlewareConsumer) {
       )
       .forRoutes({
         path: '/auth/github',
+        method: RequestMethod.GET,
+      });
+  }
+
+  if (process.env.KEYCLOAK_CLIENT_ID) {
+    consumer
+      .apply(
+        passport.authenticate(AuthProviderEnum.KEYCLOAK, {
+          session: false,
+          scope: ['openid', 'email', 'profile'],
+        })
+      )
+      .forRoutes({
+        path: '/auth/keycloak',
         method: RequestMethod.GET,
       });
   }

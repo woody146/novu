@@ -88,6 +88,42 @@ export class AuthController {
     return response.redirect(url);
   }
 
+  @Get('/keycloak')
+  keycloakAuthCheck() {
+    this.logger.trace('Checking Keycloak Auth');
+
+    if (
+      !process.env.KEYCLOAK_URL ||
+      !process.env.KEYCLOAK_REALM ||
+      !process.env.KEYCLOAK_CLIENT_ID ||
+      !process.env.KEYCLOAK_CLIENT_SECRET
+    ) {
+      throw new BadRequestException(
+        'Keycloak auth is not configured, please provide KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID and KEYCLOAK_CLIENT_SECRET as env variables'
+      );
+    }
+
+    this.logger.trace('Keycloak Auth has all variables.');
+
+    return {
+      success: true,
+    };
+  }
+
+  @Get('/keycloak/auth')
+  @UseGuards(AuthGuard('keycloak'))
+  keycloakAuth() {
+    // This route is handled by Passport - it will redirect to Keycloak
+  }
+
+  @Get('/keycloak/callback')
+  @UseGuards(AuthGuard('keycloak'))
+  async keycloakCallback(@Req() request, @Res() response) {
+    const url = buildOauthRedirectUrl(request);
+
+    return response.redirect(url);
+  }
+
   @Get('/refresh')
   @RequireAuthentication()
   @Header('Cache-Control', 'no-store')
